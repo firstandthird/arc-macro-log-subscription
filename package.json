@@ -1,0 +1,20 @@
+{
+  "name": "macro-log-subscription",
+  "version": "1.0.0",
+  "description": "arc macro for cloudwatch log subscriptions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firstandthird/macro-log-subscription.git"
+  },
+  "keywords": ["arc"],
+  "author": "First+Third",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/firstandthird/macro-log-subscription/issues"
+  },
+  "homepage": "https://github.com/firstandthird/macro-log-subscription#readme"
+}
