@@ -1,5 +1,5 @@
 {
-  "name": "macro-log-subscription",
+  "name": "arc-macro-log-subscription",
   "version": "1.0.0",
   "description": "arc macro for cloudwatch log subscriptions",
   "main": "index.js",
