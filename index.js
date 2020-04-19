@@ -5,13 +5,15 @@ module.exports = function (arc, cloudformation, stage) {
   }
   const params = {};
   arc.logSubscription.forEach(e => {
-    params[e[0]] = e.slice(1, e.length);
+    if (e.length === 2) {
+      params[e[0]] = e[1];
+    } else {
+      params[e[0]] = e.slice(1, e.length);
+    }
   });
 
-  const fnName = params.function;
-  const filterArr = params.filter;
-  filterArr.shift();
-  const filter = filterArr.join(' ');
+  const fnName = params.function || false;
+  const filter = params.filter ? params.filter.join(' ') : false;
   const retention = params.retention;
 
   cloudformation.Resources.Role.Properties.Policies[0].PolicyDocument.Statement[0].Action.push('logs:PutSubscriptionFilter');
@@ -26,11 +28,8 @@ module.exports = function (arc, cloudformation, stage) {
           RetentionInDays: retention
         }
       };
-      if (!fnName) {
-        return;
-      }
       //skip if subscription consumer
-      if (key !== fnName) {
+      if (fnName && key !== fnName) {
         cloudformation.Resources[`${key}LogGroupLambdaInvokePermission`] = {
           Type: 'AWS::Lambda::Permission',
           Properties: {
@@ -41,7 +40,9 @@ module.exports = function (arc, cloudformation, stage) {
             SourceArn: { 'Fn::GetAtt': [`${key}LogGroup`, 'Arn'] }
           }
         };
-
+        if (!filter || !fnName) {
+          return;
+        }
         cloudformation.Resources[`${key}SubscriptionFilter`] = {
           Type: 'AWS::Logs::SubscriptionFilter',
           DependsOn: `${key}LogGroupLambdaInvokePermission`,
