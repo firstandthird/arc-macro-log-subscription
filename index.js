@@ -1,55 +1,58 @@
 
 module.exports = function (arc, cloudformation, stage) {
-  const config = arc.logSubscription || [];
+  if (!arc.logSubscription) {
+    return cloudformation;
+  }
+  const params = {};
+  arc.logSubscription.forEach(e => {
+    params[e[0]] = e.slice(1, e.length);
+  });
 
-  const fnName = config[0][1]; //TODO: make this better
-  let filterArr = config[1];
+  const fnName = params.function;
+  const filterArr = params.filter;
   filterArr.shift();
   const filter = filterArr.join(' ');
-  const retention = config[2][1];
+  const retention = params.retention;
 
-  cloudformation.Resources.Role.Properties.Policies[0].PolicyDocument.Statement[0].Action.push('logs:PutSubscriptionFilter');;
+  cloudformation.Resources.Role.Properties.Policies[0].PolicyDocument.Statement[0].Action.push('logs:PutSubscriptionFilter');
 
   Object.entries(cloudformation.Resources).forEach(([key, value]) => {
-    if (value.Type == 'AWS::Serverless::Function') {
-
+    if (value.Type === 'AWS::Serverless::Function') {
       //Set Log Group
       cloudformation.Resources[`${key}LogGroup`] = {
         Type: 'AWS::Logs::LogGroup',
         Properties: {
-          LogGroupName: {"Fn::Join": ["", ["/aws/lambda/", {"Ref": key}]]},
+          LogGroupName: { 'Fn::Join': ['', ['/aws/lambda/', { Ref: key }]] },
           RetentionInDays: retention
         }
+      };
+      if (!fnName) {
+        return;
       }
-
       //skip if subscription consumer
       if (key !== fnName) {
         cloudformation.Resources[`${key}LogGroupLambdaInvokePermission`] = {
           Type: 'AWS::Lambda::Permission',
           Properties: {
-            Principal: { "Fn::Sub": "logs.${AWS::Region}.amazonaws.com" },
-            Action: "lambda:InvokeFunction",
-            FunctionName: { "Fn::GetAtt" : [ fnName, "Arn" ] },
-            SourceAccount: { "Ref": "AWS::AccountId" },
-            SourceArn: { "Fn::GetAtt" : [ `${key}LogGroup`, "Arn" ] }
+            Principal: { 'Fn::Sub': 'logs.${AWS::Region}.amazonaws.com' },
+            Action: 'lambda:InvokeFunction',
+            FunctionName: { 'Fn::GetAtt': [fnName, 'Arn'] },
+            SourceAccount: { Ref: 'AWS::AccountId' },
+            SourceArn: { 'Fn::GetAtt': [`${key}LogGroup`, 'Arn'] }
           }
-        }
+        };
 
         cloudformation.Resources[`${key}SubscriptionFilter`] = {
-          Type: "AWS::Logs::SubscriptionFilter",
+          Type: 'AWS::Logs::SubscriptionFilter',
           DependsOn: `${key}LogGroupLambdaInvokePermission`,
           Properties: {
-            LogGroupName: { "Ref" : `${key}LogGroup` },
+            LogGroupName: { Ref: `${key}LogGroup` },
             FilterPattern: filter,
-            DestinationArn: { "Fn::GetAtt" : [ fnName, "Arn" ] }
+            DestinationArn: { 'Fn::GetAtt': [fnName, 'Arn'] }
           }
-        }
+        };
       }
-
     }
   });
-  //console.log(JSON.stringify(cloudformation, null, 2));
-  //throw new Error('stop');
-
   return cloudformation;
-}
+};
