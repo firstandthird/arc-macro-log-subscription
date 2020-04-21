@@ -4,6 +4,12 @@ arc macro for cloudwatch log subscriptions
 "retention" is specified in days and will default to
 14 days if not explicitly specified
 
+## install
+
+```
+npm install arc-macro-logs
+```
+
 ### example arc
 ```
 @app
@@ -14,7 +20,7 @@ get /
 post /log
 
 @macros
-log-subscription
+arc-macro-logs
 
 @logs
 subscriptionFunction PostLog
