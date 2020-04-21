@@ -14,7 +14,7 @@ module.exports = function (arc, cloudformation, stage) {
 
   const subscriptionFunction = params.subscriptionFunction || false;
   const subscriptionFilter = params.subscriptionFilter ? params.subscriptionFilter.join(' ') : false;
-  const retention = params.retention;
+  const retention = params.retention || 14;
   cloudformation.Resources.Role.Properties.Policies[0].PolicyDocument.Statement[0].Action.push('logs:PutSubscriptionFilter');
 
   Object.entries(cloudformation.Resources).forEach(([key, value]) => {
