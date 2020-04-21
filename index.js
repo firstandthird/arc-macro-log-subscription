@@ -1,10 +1,10 @@
 
 module.exports = function (arc, cloudformation, stage) {
-  if (!arc.logSubscription) {
+  if (!arc.logs) {
     return cloudformation;
   }
   const params = {};
-  arc.logSubscription.forEach(e => {
+  arc.logs.forEach(e => {
     if (e.length === 2) {
       params[e[0]] = e[1];
     } else {
@@ -12,10 +12,9 @@ module.exports = function (arc, cloudformation, stage) {
     }
   });
 
-  const fnName = params.function || false;
-  const filter = params.filter ? params.filter.join(' ') : false;
+  const subscriptionFunction = params.subscriptionFunction || false;
+  const subscriptionFilter = params.subscriptionFilter ? params.subscriptionFilter.join(' ') : false;
   const retention = params.retention;
-
   cloudformation.Resources.Role.Properties.Policies[0].PolicyDocument.Statement[0].Action.push('logs:PutSubscriptionFilter');
 
   Object.entries(cloudformation.Resources).forEach(([key, value]) => {
@@ -29,18 +28,18 @@ module.exports = function (arc, cloudformation, stage) {
         }
       };
       //skip if subscription consumer
-      if (fnName && key !== fnName) {
+      if (subscriptionFunction && key !== subscriptionFunction) {
         cloudformation.Resources[`${key}LogGroupLambdaInvokePermission`] = {
           Type: 'AWS::Lambda::Permission',
           Properties: {
             Principal: { 'Fn::Sub': 'logs.${AWS::Region}.amazonaws.com' },
             Action: 'lambda:InvokeFunction',
-            FunctionName: { 'Fn::GetAtt': [fnName, 'Arn'] },
+            FunctionName: { 'Fn::GetAtt': [subscriptionFunction, 'Arn'] },
             SourceAccount: { Ref: 'AWS::AccountId' },
             SourceArn: { 'Fn::GetAtt': [`${key}LogGroup`, 'Arn'] }
           }
         };
-        if (!filter || !fnName) {
+        if (!subscriptionFilter || !subscriptionFunction) {
           return;
         }
         cloudformation.Resources[`${key}SubscriptionFilter`] = {
@@ -48,8 +47,8 @@ module.exports = function (arc, cloudformation, stage) {
           DependsOn: `${key}LogGroupLambdaInvokePermission`,
           Properties: {
             LogGroupName: { Ref: `${key}LogGroup` },
-            FilterPattern: filter,
-            DestinationArn: { 'Fn::GetAtt': [fnName, 'Arn'] }
+            FilterPattern: subscriptionFilter,
+            DestinationArn: { 'Fn::GetAtt': [subscriptionFunction, 'Arn'] }
           }
         };
       }
