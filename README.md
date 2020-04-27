@@ -1,4 +1,4 @@
-# macro-log-subscription
+# arc-macro-logs
 arc macro for cloudwatch log subscriptions
 
 "retention" is specified in days and will default to
